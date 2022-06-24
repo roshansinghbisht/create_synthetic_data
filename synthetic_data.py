@@ -120,7 +120,7 @@ class CreateSyntheticData():
     def main(self, image):
         new_res_image = self.change_resolution(image)
         self.initialize_parameters()
-        self.chars_sample = random.sample(self.chars, 5)
+        self.chars_sample = random.sample(self.chars, 11)
         for char in self.chars_sample:
             new_res_image, char_size = self.put_character(new_res_image, char)
             self.config["org"] = (self.config["org"][0]+char_size[0][0], self.config["org"][1])

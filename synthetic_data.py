@@ -9,6 +9,7 @@ import random
 import os
 from PIL import Image
 import numpy as np
+import sys
 # import argparse
 # import imutils
 
@@ -22,7 +23,6 @@ class CreateSyntheticData():
 
 
         self.char2id = {c[1]:c[0] for c in enumerate(self.chars)}
-        # self.image = image
         self.coco = Coco()
         self.output_dir = output_dir
         self.image_dir = image_dir
@@ -80,24 +80,27 @@ class CreateSyntheticData():
 
     def find_contours(self, image):
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        ret, binary = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY_INV)
-        # inverted_binary = ~binary
-        contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        ret, binary_inv = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY_INV)
+        contours, _ = cv2.findContours(binary_inv, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         for c in contours:
-            if (cv2.contourArea(c)) > 50:
+            if (cv2.contourArea(c)) > 10:
                 x, y, w, h = cv2.boundingRect(c)
                 cv2.rectangle(image,(x,y), (x+w,y+h), (0,0,255), 2)
+        cv2.imshow('image with contours', image)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
         return contours
 
 
     def sort_contours(self, cnts, method="left-to-right"):
+        """Return the list of sorted contours and bounding boxes
+        """
         # initialize the reverse flag and sort index
         reverse = False
         i = 0
         boundingBoxes = [cv2.boundingRect(c) for c in cnts]
         (cnts, boundingBoxes) = zip(*sorted(zip(cnts, boundingBoxes),
             key=lambda b:b[1][i], reverse=reverse))
-        # return the list of sorted contours and bounding boxes
         return cnts
     
 
@@ -132,15 +135,29 @@ class CreateSyntheticData():
 
     
 if __name__ == "__main__":
-    output_dir = datetime.now().strftime("%Y_%m_%d %H_%M_%S.%f")
-    output_dir_path = os.path.join(".", f"output_{output_dir}")
+    train_split = sys.argv[1]
+    test_split = sys.argv[2]    
+    date_time = datetime.now().strftime("%Y_%m_%d %H_%M_%S.%f")
+    output_dir_path = os.path.join("./created_data", f"output_{date_time}")
     os.mkdir(output_dir_path)
-    image_dir_name = "images"
-    image_dir_path = os.path.join(output_dir_path, image_dir_name)
-    os.mkdir(image_dir_path)
+    train_split_path = os.path.join(output_dir_path, "train")
+    os.mkdir(train_split_path)
+    # image_dir_name = "images"
+    train_image_dir = os.path.join(train_split_path, "images")
+    os.mkdir(train_image_dir)
+    test_split_path = os.path.join(output_dir_path, "test")
+    os.mkdir(test_split_path)
+    test_image_dir = os.path.join(test_split_path, "images")
+    os.mkdir(test_image_dir)
 
-    csd = CreateSyntheticData(output_dir_path, image_dir_path)
-    for i in range(15):
+    csd_train = CreateSyntheticData(train_split_path, train_image_dir)
+    for i in range(int(train_split)):
         image = cv2.imread('paper_texture.jpg')
-        csd.main(image)
-    csd.save()
+        csd_train.main(image)
+    csd_train.save()
+
+    csd_test = CreateSyntheticData(test_split_path, test_image_dir)
+    for i in range(int(test_split)):
+        image = cv2.imread('paper_texture.jpg')
+        csd_test.main(image)
+    csd_test.save()

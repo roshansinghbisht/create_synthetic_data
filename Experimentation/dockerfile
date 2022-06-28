@@ -1,0 +1,2 @@
+from linux
+cmd python xyz.py run
